@@ -1,0 +1,52 @@
+#!/bin/sh
+
+# bowtie2, samtools, RepARK and minia need to be installed.
+# samtools 1.3 necessary for bam to fasta conversion.
+
+
+# Run bowtie2-build to index the genome (Given as first argument / $1).
+# Run bowtie2 to map the fastQ file (second argument / $2)
+# to the indexed genome, and return a SAM file.
+
+
+
+
+echo -e '\n Building genome index... \n'
+
+bowtie2-build $1 indexed-genome
+
+
+echo -e '\n Aligning reads with genome... \n'
+
+bowtie2 -p 12  -x indexed-genome -U $2 -S aligned-reads.sam
+
+
+
+
+
+# Filtering the data and keeping only unmapped reads.
+
+echo -e '\n Filtering out mapped reads... \n'
+
+samtools view -f 0x4 -@ 12 aligned-reads.sam > unmapped-reads.bam
+
+echo -e '\n converting unmapped-reads.bam to fasta format... \n'
+
+samtools fasta unmapped-reads.bam > unmapped-reads.fasta
+
+
+# Assembling the contigs from the unmapped reads.
+
+#echo -e '\n Creating contigs with RepARK... \n'
+
+#./RepARK-master/RepARK.pl -p 12 -l unmapped-reads.fasta  # results in repeat_lib.fasta
+
+echo -e '\n Creating contigs with minia... \n'
+
+minia -in unmapped-reads.fasta -nb-cores 12  # results in contig.fa
+
+
+
+echo -e '\n RepARK alignment results in repeat_lib.fasta \n'
+
+echo -e '\n Minia alignment results in contig.fasta \n'
